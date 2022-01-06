@@ -1,0 +1,24 @@
+---
+name: fetch-baidu-hot-spot
+steps:
+  - type: openUrl
+    url: http://localhost:5000/
+  - type: findAndClick
+    selector: # selector 总是从根窗口开始
+      - window:
+          src: http://localhost:5000/
+      - xpath: /html/body/a
+  - type: getText
+    selector:
+      - window:
+          src: http://localhost:5000/iframe-1.html
+      - xpath: /html/body/iframe
+      - xpath: /html/body/div
+  - type: assert
+    method: eq
+    expect: 'iframe-inner-1'
+    selector:
+      - window:
+          src: http://localhost:5000/iframe-1.html
+      - xpath: /html/body/iframe
+      - xpath: /html/body/div
