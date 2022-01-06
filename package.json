@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "electron ."
+    "start": "electron .",
+    "serve-demo-site": "sirv -D --port 10086 testsite"
   },
   "author": "yuekcc",
   "license": "MIT",
@@ -39,7 +40,8 @@
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^4.0.0",
-    "prettier": "^2.4.0"
+    "prettier": "^2.4.0",
+    "sirv-cli": "^2.0.1"
   },
   "dependencies": {
     "electron": "^16.0.6",
