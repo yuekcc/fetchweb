@@ -39,8 +39,15 @@ steps:
       - xpath: /html/body/iframe
       - xpath: /html/body/div
 ```
-
 更新说明 TBA
+
+## 体验
+
+```sh
+$ npm run serve-demo-site&
+$ npm start
+```
+
 
 ## LICENSE
 
