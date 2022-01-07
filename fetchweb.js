@@ -4,6 +4,10 @@ function sleep(timeout = 5000) {
   return new Promise(resolve => setTimeout(resolve, timeout));
 }
 
+function car(likeArray) {
+  return Array.isArray(likeArray) ? likeArray[0] : likeArray;
+}
+
 const actions = {};
 function regAction(name, impl) {
   actions[name] = impl;
@@ -20,6 +24,7 @@ async function findAll({ browser, selector }) {
   // the obj maybe Target/Page/ElementHandle
   let obj;
   for (const s of selectors) {
+    // 根入口是当前窗口
     if (s.window) {
       const targetList = await browser.targets();
       const target = targetList.find(target => {
@@ -32,13 +37,14 @@ async function findAll({ browser, selector }) {
       }
     }
 
+    // selector 带有 xpath 属性，此时 selector 可能是 iframe 或是一般元素
     if (s.xpath && obj) {
       console.log('test xpath: %s, el is %s', s.xpath, obj.constructor?.name);
+      obj = await car(obj).$x(s.xpath);
 
-      const handle = Array.isArray(obj) ? obj[0] : obj;
-      obj = await handle.$x(s.xpath);
+      const _handle = car(obj);
 
-      const _handle = Array.isArray(obj) ? obj[0] : obj;
+      // 如果是 iframe，会带有 contentFrame 方法，将 ElementHandle 转换为 Frame
       if (_handle.contentFrame && typeof _handle.contentFrame === 'function') {
         const frame = await _handle.contentFrame();
         if (frame) {
@@ -56,10 +62,10 @@ async function findAll({ browser, selector }) {
 
 async function findOne({ browser, selector }) {
   const el = await findAll({ browser, selector });
-  return Array.isArray(el) ? el[0] : el;
+  return car(el);
 }
 
-regAction('findAndClick', async ({ browser, selector }) => {
+regAction('click', async ({ browser, selector }) => {
   let _el = await findOne({ browser, selector });
   if (_el) {
     const waitForTarget = () => new Promise(resolve => browser.once('targetcreated', t => resolve(t)));
@@ -79,12 +85,30 @@ async function getText({ browser, selector }) {
   }
 }
 
-regAction('getText', getText);
+regAction('print', getText);
 
 regAction('assert', async ({ browser, selector, method, expect }) => {
   const actual = await getText({ browser, selector });
   const result = actual === expect;
   console.log('assert, method: %s, expect: %s, actual: %s, result is: %s', method, expect, actual, result);
+});
+
+regAction('start', async () => {
+  // do nothing
+});
+
+regAction('end', async ({ stopWatch }) => {
+  if (!stopWatch) {
+    return;
+  }
+
+  const now = Date.now();
+  const start = stopWatch.start || 0;
+  if (start === 0) {
+    return;
+  }
+
+  console.log('watch stopped, use %d(s)', Math.abs((now - start) / 1000).toFixed(2));
 });
 
 class Command {
@@ -94,10 +118,10 @@ class Command {
   async execute() {
     const f = actions[this.params.type];
     if (f) {
-      console.log('[CMD] run action: %s', this.params.type);
+      console.log('++++\n[CMD] run action: %s', this.params.type);
       await f(this.params);
     } else {
-      console.log('[CMD] not support action: %s', this.params.type);
+      console.log('++++\n[CMD] unsupported action: %s', this.params.type);
     }
   }
 }
@@ -121,12 +145,14 @@ exports.FetchWeb = class {
 
     const page = await pie.getPage(browser, window);
 
-    console.log(`running fetch-web script, name: %s`, script.name);
+    console.log('++++\nrunning fetch-web script, name: %s', script.name);
 
+    const stopWatch = { start: Date.now() };
     for (const step of script.steps) {
       const command = new Command({
         browser,
         page,
+        stopWatch,
         window,
         ...step,
       });
