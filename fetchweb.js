@@ -13,7 +13,7 @@ function regAction(name, impl) {
   actions[name] = impl;
 }
 
-regAction('openUrl', async ({ page, url }) => {
+regAction('open_url', async ({ page, url }) => {
   await page.goto(url);
   await page.waitForNetworkIdle();
 });
@@ -126,6 +126,22 @@ class Command {
   }
 }
 
+function normalizeStep(step) {
+  if (typeof step === 'string') {
+    return {
+      type: step,
+    };
+  }
+
+  const [type] = Object.keys(step);
+  const [props] = Object.values(step);
+
+  return {
+    type,
+    ...props,
+  };
+}
+
 exports.FetchWeb = class {
   /**
    * FetchWeb
@@ -149,12 +165,14 @@ exports.FetchWeb = class {
 
     const stopWatch = { start: Date.now() };
     for (const step of script.steps) {
+      const _step = normalizeStep(step);
+
       const command = new Command({
         browser,
         page,
         stopWatch,
         window,
-        ...step,
+        ..._step,
       });
 
       await command.execute();
